@@ -43,6 +43,14 @@ node "<SPIDERBRAIN_HOME>/core/scripts/build-brain.mjs" \
 
 Substitute `<SPIDERBRAIN_HOME>` with your actual install path. Node ≥ 18. Zero npm dependencies. Cross-platform (Windows paths with spaces handled). For the Claude Code always-on hooks (per-session / per-prompt / per-edit), see [`platforms/claude/README.md`](./platforms/claude/README.md).
 
+**Using opencode, Claude Desktop, Cursor, Continue, or Zed?** Start the MCP server against your brain instead of wiring the Claude Code hooks:
+
+```bash
+node "<SPIDERBRAIN_HOME>/platforms/mcp/server.mjs" --brain "<absolute-path-to-brain-folder>"
+```
+
+Point your client at that command (one JSON config block per client — see [`platforms/mcp/README.md`](./platforms/mcp/README.md)) and the model gains four on-demand tools: `spiderbrain_brief` (per-prompt context), `spiderbrain_query` (ranked file lookup), `spiderbrain_cascade` (blast-radius before edits), and `spiderbrain_molt` (drift audit). The MCP adapter is on-demand only — it does not auto-fire the session brief or per-prompt whisper the way the Claude Code hooks do. Full usage guide and wiring configs for each client: [`platforms/mcp/README.md`](./platforms/mcp/README.md).
+
 ---
 
 ## What you get

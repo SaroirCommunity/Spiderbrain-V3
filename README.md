@@ -87,7 +87,7 @@ The `.dragline/` + quarantine + restore pipeline that protects curated state has
 ```
 spiderbrain v3/
 ├── core/                  the optimisation engine (BUSL 1.1)
-├── platforms/             provider adapters (Apache 2.0 - open source; Claude shipped)
+├── platforms/             provider adapters (Apache 2.0 - open source; Claude + MCP shipped)
 ├── docs/                  cost-reduction analysis + benchmarks
 ├── benchmarks/            reproducible scenarios + methodology
 ├── enterprise/            commercial offerings (overview)
@@ -256,8 +256,9 @@ flowchart LR
     end
 
     subgraph PLATFORMS["PLATFORM ADAPTERS - open source (Apache 2.0)"]
-        PC["claude (Claude Code)<br/>SHIPPED"]
-        PW["OpenAI · Gemini · Cursor<br/>Mistral · DeepSeek · Grok<br/>WANTED - see CHALLENGES.md"]
+        PC["claude (Claude Code)<br/>always-on hooks · SHIPPED"]
+        PM["MCP server<br/>opencode · Claude Desktop<br/>Cursor · Continue · Zed · SHIPPED"]
+        PW["OpenAI · Gemini<br/>Mistral · DeepSeek · Grok<br/>WANTED - see CHALLENGES.md"]
     end
 
     subgraph OUT["OUTPUTS - the brain on disk"]
@@ -303,9 +304,11 @@ flowchart LR
     NV --> ML --> MR
     SY --> DEFENSE
     SY --> OVERLAP
-    PLATFORMS -.-> T1 & T2 & T3
+    PC -.-> T1 & T2 & T3
     T1 & T2 --> CORE
     T3 --> MV
+    PM -.-> QR & NV & ML
+    PM -.-> SY
     T4 --> ML
     VS --> SY
     CORE -.-> ENT
@@ -315,7 +318,7 @@ flowchart LR
 **Reading the diagram:**
 
 - **Core (BUSL 1.1, source-available with carve-outs):** the deterministic optimisation engine - scan, graph, masters, columns, the third direction (modulation), amplitude, the cascade engine with structural firebreaks, the dragline (quarantine + repair), molt (drift audit), and the query interface.
-- **Platforms (Apache 2.0, open source):** thin adapters that wire the core to a particular AI environment. **Claude (Claude Code) is shipped.** OpenAI / Gemini / Cursor / Mistral / DeepSeek / Grok are open community challenges - see [`CHALLENGES.md`](./CHALLENGES.md) for the tier-1 spec and the contributor recognition that comes with shipping one.
+- **Platforms (Apache 2.0, open source):** thin adapters that wire the core to a particular AI environment. **Two adapters are shipped:** the **Claude Code adapter** (three always-on hooks — SessionStart brief, per-prompt whisper, PostToolUse journal) and the **MCP server** (on-demand tools + resources for opencode, Claude Desktop, Cursor, Continue, Zed, and any other MCP-capable client). The MCP adapter is an on-demand supplement, not a parity replacement for the always-on hooks — see [`platforms/mcp/README.md`](./platforms/mcp/README.md). OpenAI / Gemini / Mistral / DeepSeek / Grok native adapters are open community challenges - see [`CHALLENGES.md`](./CHALLENGES.md) for the tier-1 spec and the contributor recognition that comes with shipping one.
 - **Enterprise (commercial):** modules built on top of the core for organisations needing managed, analytics, tuning, multi-provider routing, or SLAs. See [`enterprise/`](./enterprise/) and [`COMMERCIAL.md`](./COMMERCIAL.md).
 - **In development:** v4 nearest-master and spiderWaveBrain (the planned enterprise + supercomputing-scale evolution). Referenced but not exposed - no premature promises.
 
@@ -348,8 +351,9 @@ spiderbrain v3/
 │
 ├── platforms/                     ADAPTERS (Apache 2.0)
 │   ├── README.md                  the adapter contract + skeleton
-│   └── claude/                    the only shipped adapter (3 hooks)
-│                                  OpenAI · Gemini · Cursor · Mistral · DeepSeek · Grok
+│   ├── claude/                    always-on hooks (SessionStart · UserPromptSubmit · PostToolUse)
+│   └── mcp/                       MCP server — opencode · Claude Desktop · Cursor · Continue · Zed
+│                                  OpenAI · Gemini · Mistral · DeepSeek · Grok
 │                                  are open contributor challenges - see CHALLENGES.md
 │
 ├── docs/
@@ -414,6 +418,7 @@ The project is community-expandable by design: modular, adapter-extensible, lega
 ## Where to read next
 
 - [`INSTALL.md`](./INSTALL.md) - install, verify, hook wiring, troubleshooting.
+- [`platforms/mcp/README.md`](./platforms/mcp/README.md) - MCP server adapter: wire spiderbrain into opencode, Claude Desktop, Cursor, Continue, Zed, and any MCP-capable client.
 - [`CHALLENGES.md`](./CHALLENGES.md) - **open contributor challenges. Pick one, ship it, get credited.**
 - [`core/SKILL.md`](./core/SKILL.md) - the skill entry point with BUILD / MAINTAIN / QUERY / CASCADE modes.
 - [`core/README.md`](./core/README.md) - the engine's full benefits across 16 categories.

@@ -47,13 +47,15 @@ Required for every adapter: a `boot` injector (SessionStart-equivalent), a `prom
 
 | ID | Platform | Notes |
 |---|---|---|
-| A1 | **OpenAI** (Assistants / Responses API) | Tool-spec format here is reusable for most other providers; landing this first accelerates everything after. |
-| A2 | **Cursor** (.cursor/rules + composer) | The IDE-side reference. The before/after gif from this one is the most-watchable artefact the project will ship. |
-| A3 | **Gemini** (Code Assist + API) | Opens the Google Workspace + Vertex surface. |
-| A4 | **Mistral / Codestral** | Coding-specialist model with a real niche. |
-| A5 | **DeepSeek Coder** | Cost-aware audience; bonus if you ship a side-by-side cost comparison. |
-| A6 | **Grok (xAI)** | The X-ecosystem integration. |
+| A0 | **MCP server validation** | The scaffold (`platforms/mcp/server.mjs`) exists. Run it on a 50+ file real project, confirm all four tools return valid output, and attach a terminal recording. First to land earns top-of-table byline. |
+| A1 | **OpenAI** (Assistants / Responses API) | Tool-spec format here is reusable for most other providers; landing this first accelerates everything after. The MCP scaffold covers the query/cascade/molt tool surface; the native adapter still owns boot + per-prompt whisper + journal. |
+| A2 | **Cursor** (.cursor/rules + composer) | The IDE-side reference. The before/after gif from this one is the most-watchable artefact the project will ship. The MCP scaffold covers the query/cascade/molt tool surface; the native adapter still owns boot + per-prompt whisper + journal. |
+| A3 | **Gemini** (Code Assist + API) | Opens the Google Workspace + Vertex surface. The MCP scaffold covers the query/cascade/molt tool surface; the native adapter still owns boot + per-prompt whisper + journal. |
+| A4 | **Mistral / Codestral** | Coding-specialist model with a real niche. The MCP scaffold covers the query/cascade/molt tool surface; the native adapter still owns boot + per-prompt whisper + journal. |
+| A5 | **DeepSeek Coder** | Cost-aware audience; bonus if you ship a side-by-side cost comparison. The MCP scaffold covers the query/cascade/molt tool surface; the native adapter still owns boot + per-prompt whisper + journal. |
+| A6 | **Grok (xAI)** | The X-ecosystem integration. The MCP scaffold covers the query/cascade/molt tool surface; the native adapter still owns boot + per-prompt whisper + journal. |
 | A7 | **Your platform** | Self-hosted LLM, internal agent, anything that satisfies the contract. Open an issue first to confirm scope. |
+| A8 | **opencode native shim** | The MCP scaffold covers ~80% of the opencode integration. The remaining 20% is a native `inject-brief` shim wired to opencode's session-start event so the boot brief (prey + hot list + top webscores) fires automatically. See `platforms/README.md` for the full adapter contract. |
 
 **Acceptance for any adapter:** working end-to-end on a real project of 50+ files; the journal contains valid JSONL after a session; the per-prompt shim matches the sanitisation discipline in `prompt-brief.mjs`; a 30-second screen recording or terminal capture demonstrating the brief loading and the agent acting on it.
 

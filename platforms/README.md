@@ -17,6 +17,7 @@ Adapters that wire the brain (`core/`) into specific LLM platforms and coding ag
 | Adapter | Status | What it does |
 |---|---|---|
 | [claude/](claude/) | **shipped** | Three hooks: `SessionStart` brief, `UserPromptSubmit` whisper, `PostToolUse` journal. Always-on against Claude Code. |
+| [mcp/](mcp/) | **scaffold** | MCP server (JSON-RPC 2.0 / stdio). On-demand tool + resource surface for opencode, Claude Desktop, Cursor, Continue, Zed, and any MCP-capable client. Does not replace the always-on hooks; see `mcp/README.md §Degraded vs full-parity`. |
 
 That's the whole shipped surface. Every other platform integration is open as a community challenge; see [`../CHALLENGES.md`](../CHALLENGES.md) for the list of wanted adapters and what shipping one earns you.
 

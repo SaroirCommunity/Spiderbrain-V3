@@ -108,6 +108,40 @@ const cephalothoraxReadme = () =>
   `hook appends one JSONL line here per edited file (\`SESSION-*.jsonl\`). ` +
   `\`consolidate.mjs\` folds these into \`movemap.md\` and clears them.\n`;
 
+// Scaffolded on first build. Written once via writeIfAbsent so a user who
+// hand-edits this file keeps their changes through later rebuilds.
+//
+// What it excludes by default:
+//   - cephalothorax SESSION-*.jsonl (volatile; wiped on every consolidate).
+//   - .dragline/ (local snapshots for curated-state recovery; regenerate on
+//     the next build, and committing them just bloats history).
+//   - quarantine + tmp leftovers from corruption recovery and atomic writes.
+//
+// What it intentionally does NOT exclude:
+//   - synganglion.json and the rendered views (spideyorder.md, spideymove.md,
+//     each cluster's webmap.md). They are GENERATED, but committing them
+//     lets reviewers see "what the brain thought today" without rebuilding.
+//   - the CURATED files (spiderbrain.config.json, webscore-overrides.json,
+//     SPIDERBRAIN.md, movemap.md, and each cluster's rules/config/changelog).
+//     These are long-term memory; they belong in version control.
+const gitignoreStub = () =>
+  `# spiderbrain .gitignore\n` +
+  `# Scaffolded by build-brain.mjs (written once; customise freely).\n` +
+  `#\n` +
+  `# Excluded by default - volatile, regeneratable, or local-only:\n` +
+  `cephalothorax/SESSION-*.jsonl\n` +
+  `.dragline/\n` +
+  `*.fouled-*\n` +
+  `*.tmp\n` +
+  `\n` +
+  `# Intentionally NOT excluded:\n` +
+  `#   synganglion.json and the rendered views (spideyorder.md,\n` +
+  `#   spideymove.md, <cluster>/webmap.md) are generated, but committing\n` +
+  `#   them lets reviewers see "what the brain thought today" without a\n` +
+  `#   rebuild. The curated files (config, overrides, SPIDERBRAIN.md,\n` +
+  `#   movemap.md, each cluster's rules/config/changelog) are long-term\n` +
+  `#   memory and belong in version control.\n`;
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const brainDir = resolve(args.brain || process.cwd());
@@ -162,6 +196,7 @@ function main() {
     writeIfAbsent(join(dir, 'config.md'), configStub(name));
   }
   writeIfAbsent(join(brainDir, 'movemap.md'), movemapStub());
+  writeIfAbsent(join(brainDir, '.gitignore'), gitignoreStub());
   ensureDir(join(brainDir, 'cephalothorax'));
   writeIfAbsent(join(brainDir, 'cephalothorax', 'README.md'), cephalothoraxReadme());
 

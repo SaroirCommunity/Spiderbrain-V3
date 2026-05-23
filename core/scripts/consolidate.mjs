@@ -17,13 +17,38 @@
 // memory consolidated into long-term, then the desk wiped clean.
 
 import { join, resolve, relative } from 'node:path';
-import { readdirSync, readFileSync, appendFileSync, rmSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { loadCurated, rebuild } from './lib/brain.mjs';
 import { anchorDragline } from './lib/dragline.mjs';
 import { clusterOf } from './lib/graph.mjs';
 import { toPosix } from './lib/scan.mjs';
-import { parseArgs, ensureDir } from './lib/io.mjs';
+import { parseArgs, ensureDir, appendTextAtomic } from './lib/io.mjs';
+
+// Caps for project-sourced strings written into the permanent movemap.md.
+// movemap.md is the brain's long-term log; once an entry is appended it is
+// never rewritten. Anything we let in here poisons the log forever - so the
+// same sanitisation discipline prompt-brief.mjs applies to its emitted
+// context, this writer applies to its appended block.
+const LABEL_MAX    = 80;
+const CLUSTER_MAX  = 60;
+const FILE_ID_MAX  = 240;
+
+// Strip control chars + backticks + collapse whitespace + length-cap. Every
+// project-sourced string (file paths, cluster names, deploy label) flows
+// through this before landing in movemap.md. Backticks are stripped in
+// addition to the prompt-brief.mjs set because the markdown writer wraps
+// file ids in ` ` inline-code spans; a backtick in the input would tear the
+// span open and let the surrounding markdown be reinterpreted on the next
+// read.
+function sanitizeForMovemap(s, cap) {
+  if (typeof s !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/[\x00-\x1F\x7F`]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, cap || 240);
+}
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -77,20 +102,31 @@ function main() {
       byCluster[cl][rel] = (byCluster[cl][rel] || 0) + 1;
     }
     const when = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    const label = typeof args.deploy === 'string' ? args.deploy : 'session consolidate';
+    const rawLabel = typeof args.deploy === 'string' ? args.deploy : 'session consolidate';
+    const label = sanitizeForMovemap(rawLabel, LABEL_MAX) || 'session consolidate';
     const fileCount = Object.values(byCluster)
       .reduce((acc, files) => acc + Object.keys(files).length, 0);
     let block = `\n## ${when} - ${label}\n\n` +
       `${fileCount} file(s) touched across ` +
       `${Object.keys(byCluster).length} cluster(s).\n\n`;
     for (const [cl, files] of Object.entries(byCluster).sort()) {
+      const clSafe = sanitizeForMovemap(cl, CLUSTER_MAX) || '-';
       const list = Object.entries(files)
         .sort((a, b) => b[1] - a[1])
-        .map(([f, n]) => `\`${f}\`${n > 1 ? ' ×' + n : ''}`)
+        .map(([f, n]) => {
+          const fSafe = sanitizeForMovemap(f, FILE_ID_MAX);
+          if (!fSafe) return '';
+          return `\`${fSafe}\`${n > 1 ? ' ×' + n : ''}`;
+        })
+        .filter(Boolean)
         .join(', ');
-      block += `- **${cl}** (${Object.keys(files).length}) - ${list}\n`;
+      block += `- **${clSafe}** (${Object.keys(files).length}) - ${list}\n`;
     }
-    appendFileSync(join(brainDir, 'movemap.md'), block, 'utf8');
+    // movemap.md is curated long-term memory; once a block lands it is
+    // never rewritten. Use the tmp+fsync+rename pattern so a crash mid-
+    // append leaves either the old file or a stranded .tmp, never a
+    // half-written log.
+    appendTextAtomic(join(brainDir, 'movemap.md'), block);
   }
 
   // 4. clear the journals - the desk is wiped

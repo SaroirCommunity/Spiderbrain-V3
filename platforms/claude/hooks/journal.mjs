@@ -57,11 +57,26 @@ function readStdin() {
     const norm = file.replace(/\\/g, '/').replace(/\/+$/, '');
     const brainNorm = brain.replace(/\\/g, '/').replace(/\/+$/, '');
 
-    // Segment-aware containment - startsWith(brain) alone would also match a
-    // sibling like "/foo/project-brain-backup" when brain is "/foo/project-brain",
+    // Platform-aware path comparison. Windows and default-APFS macOS are
+    // case-insensitive at the filesystem layer, so a brain registered as
+    // "/foo/Project-Brain" must still containment-match an incoming
+    // "/foo/project-brain/synganglion.json" written by an editor that
+    // canonicalised the case differently. Without the fold, mixed-case
+    // paths would either (a) journal an edit to the brain itself, or
+    // (b) drop a legitimate project edit as "outside the tree." Linux
+    // (case-sensitive ext4/btrfs/xfs) keeps strict comparison.
+    const ciFs = process.platform === 'win32' || process.platform === 'darwin';
+    const fold = (p) => (ciFs ? p.toLowerCase() : p);
+
+    // Segment-aware containment - startsWith(root) alone would also match a
+    // sibling like "/foo/project-brain-backup" when root is "/foo/project-brain",
     // either suppressing legitimate edits (false positive) or, on the project
     // check, accepting edits that fall outside the project tree (security).
-    const inOrUnder = (path, root) => path === root || path.startsWith(root + '/');
+    const inOrUnder = (path, root) => {
+      const p = fold(path);
+      const r = fold(root);
+      return p === r || p.startsWith(r + '/');
+    };
 
     if (inOrUnder(norm, brainNorm)) process.exit(0); // never journal the brain itself
     if (project) {

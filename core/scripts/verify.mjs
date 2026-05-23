@@ -99,10 +99,24 @@ if (ok) {
   lines.push('  1. Wire the 3 hooks in your project\'s .claude/settings.local.json');
   lines.push('     (see ' + join(ROOT, 'platforms/claude/README.md') + ')');
   lines.push('  2. Build a brain on your project:');
-  lines.push('       node "' + join(ROOT, 'core/scripts/build-brain.mjs') + '" \\');
-  lines.push('         --project "<abs path to your project>" \\');
-  lines.push('         --brain   "<abs path for the brain folder>" \\');
-  lines.push('         --prey    "<the single goal this project serves>"');
+  const buildScript = join(ROOT, 'core/scripts/build-brain.mjs');
+  if (process.platform === 'win32') {
+    // Windows: emit as ONE line. cmd.exe continues with `^` (and is brittle
+    // to trailing whitespace); PowerShell uses a backtick; bash-on-WSL
+    // uses `\`. A single line is the only form that pastes cleanly into
+    // all three. Long, but unambiguous.
+    lines.push('       node "' + buildScript +
+      '" --project "<abs path to your project>"' +
+      ' --brain "<abs path for the brain folder>"' +
+      ' --prey "<the single goal this project serves>"');
+  } else {
+    // POSIX shells (bash/zsh/sh): backslash-newline continuation is
+    // idiomatic. Readability over a single very long line.
+    lines.push('       node "' + buildScript + '" \\');
+    lines.push('         --project "<abs path to your project>" \\');
+    lines.push('         --brain   "<abs path for the brain folder>" \\');
+    lines.push('         --prey    "<the single goal this project serves>"');
+  }
   lines.push('  3. Read the BUILD / MAINTAIN / QUERY / CASCADE modes:');
   lines.push('       ' + join(ROOT, 'core/SKILL.md'));
 } else {

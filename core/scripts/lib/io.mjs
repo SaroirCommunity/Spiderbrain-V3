@@ -124,6 +124,45 @@ export function writeText(path, text) {
   writeFileSync(path, text, 'utf8');
 }
 
+/**
+ * Atomic append for curated, append-only text files. Reads the destination
+ * (treating missing as empty), appends `text` in-memory, then writes via
+ * the same write-tmp + fsync + rename pattern as writeJsonAtomic. A crash
+ * mid-write leaves either the old file untouched or a stranded `.tmp`
+ * file - never a half-written log.
+ *
+ * Use for CURATED append-only files (movemap.md). For session-scoped
+ * append-only files where torn tails are recoverable (the SESSION-*.jsonl
+ * journals - consolidate.mjs already skips parse-failed lines), a plain
+ * appendFileSync stays correct and is a lot cheaper.
+ *
+ * Caveat: this is "atomic" in the single-rename sense. It is NOT a cross-
+ * process lock - two writers calling appendTextAtomic on the same path can
+ * still race and clobber one another's appended block. consolidate.mjs is
+ * the single declared writer of movemap.md (the brain's "sleep" step) so
+ * this is acceptable here; a multi-writer caller needs its own lockfile.
+ */
+export function appendTextAtomic(path, text) {
+  ensureDir(dirname(path));
+  let current = '';
+  try { current = readFileSync(path, 'utf8'); } catch { /* missing - treat as empty */ }
+  const tmp = path + '.tmp';
+  const payload = current + text;
+  writeFileSync(tmp, payload, 'utf8');
+  try {
+    const fd = openSync(tmp, 'r+');
+    try { fsyncSync(fd); } finally { closeSync(fd); }
+  } catch { /* fsync not supported here - proceed */ }
+  try {
+    renameSync(tmp, path);
+  } catch {
+    // Windows + some FS combos refuse rename-over. Same fallback as
+    // writeJsonAtomic: unlink, then rename. Sub-millisecond gap.
+    try { if (existsSync(path)) unlinkSync(path); } catch { /* ignore */ }
+    renameSync(tmp, path);
+  }
+}
+
 /** Write only if the file is absent. Returns true if it wrote. */
 export function writeIfAbsent(path, text) {
   if (existsSync(path)) return false;

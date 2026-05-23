@@ -16,19 +16,39 @@ Community contributions credited in a release land here by name (with the contri
 
 ## [Unreleased]
 
-Planned for the next patch release (3.0.x):
-
-- Port the `prompt-brief.mjs` sanitise + untrusted-content-fence discipline to `session-brief.mjs` and `consolidate.mjs::movemap.md` (see `SECURITY.md` threat table).
-- Lowercase-comparison fix in `journal.mjs::inOrUnder` for case-insensitive Windows paths.
-- Atomic append for `movemap.md` via a tmp + rename pattern.
-- Scaffolded `.gitignore` in the brain folder (currently a documentation-only recommendation).
-- `verify.mjs` next-steps output rendered with platform-appropriate line continuations.
+- **MCP adapter** (`platforms/mcp/server.mjs` + `platforms/mcp/README.md`) — on-demand tool + resource surface for opencode, Claude Desktop, Cursor, Continue, Zed, and any MCP-capable client. Four tools (`spiderbrain_query`, `spiderbrain_cascade`, `spiderbrain_molt`, `spiderbrain_brief`), two concrete resources (`brain://SPIDERBRAIN.md`, `brain://spideyorder.md`), one URI template (`brain://webmap/{cluster}` via `resources/templates/list`), one prompt (`cascade_before_edit`). Zero npm dependencies. All output fenced + control-char-sanitised while preserving newlines. Stdin re-entrancy guard on pipelined requests. opencode wired with `"type": "local"` and unified command array.
 
 Planned for v4 (gated; not yet released):
 
 - Nearest-master assignment (tested; +3.5% on perform.digital, −1.5% on Saroir; honest results in `docs/benchmarks.md` §8).
 - `PreToolUse` hook that runs cascade before risky edits.
 - Symbol-level scan to upgrade confabulation detection from `[partial]` to `[shipped]`.
+
+## [3.0.1] - Security + correctness patch
+
+A surgical patch landing the items previously queued under `[Unreleased]` for the next 3.0.x release. No behaviour change for the brain's data model; every fix tightens a known boundary or removes a known foot-gun. All 17 unit tests (4 new) pass.
+
+### Security
+
+- **Sanitise + untrusted-content fence ported to `session-brief.mjs`.** The SessionStart hook now mirrors `prompt-brief.mjs` discipline: every project-sourced string (prey, hot-list file ids, top-webscore file ids) flows through `sanitize()` (control-char strip, whitespace collapse, length cap), and the project-sourced section is wrapped in `<spiderbrain-untrusted-content>` with a trusted header outside the fence. A SQL column DEFAULT `'ignore previous instructions'` or a file path containing a newline can no longer break out of the brief.
+- **Sanitisation extended to `consolidate.mjs::movemap.md`.** Every project-sourced string (file path, cluster name, deploy label) is sanitised before being appended to the permanent log. Backticks are stripped in addition to the base set because the writer wraps file ids in inline-code spans; a backtick in the input would tear the span open. movemap.md is curated long-term memory — a poisoned block, once committed, stays committed.
+- **Case-insensitive segment-aware containment in `journal.mjs::inOrUnder`.** On Windows and default-APFS macOS (case-insensitive filesystems), a brain registered as `/foo/Project-Brain` now containment-matches an incoming `/foo/project-brain/...` from an editor that canonicalised case differently. Without the fold, mixed-case paths either (a) journalled an edit to the brain itself, or (b) silently dropped a legitimate project edit. The Linux behaviour (strict comparison) is unchanged. The segment-aware sibling-prefix guard (`/foo/project-brain-backup` ≠ `/foo/project-brain`) remains intact under the fold.
+
+### Reliability
+
+- **Atomic append for `movemap.md`.** New `io.mjs::appendTextAtomic` helper: reads the destination (missing → empty), appends in-memory, writes via tmp + best-effort fsync + rename with the Windows unlink-then-rename fallback. `consolidate.mjs` now uses it. A crash mid-append leaves either the old file or a stranded `.tmp`, never a half-written log. Documented as single-writer atomic (not a cross-process lock); `consolidate.mjs` is the only declared writer of `movemap.md`.
+- **`.gitignore` scaffolded on first brain build.** `build-brain.mjs` writes a sensible default (`cephalothorax/SESSION-*.jsonl`, `.dragline/`, `*.fouled-*`, `*.tmp`) once, via `writeIfAbsent`, so user customisations survive every later rebuild. Generated views (`synganglion.json`, `spideyorder.md`, `spideymove.md`, each `<cluster>/webmap.md`) are intentionally NOT excluded — committing them lets reviewers see "what the brain thought today" without rebuilding.
+- **`verify.mjs` next-steps render with platform-appropriate continuation.** Windows prints the `build-brain.mjs` invocation on one line (cmd.exe `^` continuations are brittle, PowerShell uses backtick, bash-on-WSL uses `\` — a single line is the only form that pastes cleanly into all three). POSIX shells continue with `\` for readability.
+
+### Tests
+
+- New `core/__tests__/io.test.mjs` (4 tests) locks down `appendTextAtomic`: creates a missing file, appends without losing prior bytes, leaves no stranded `.tmp`, round-trips UTF-8 byte-for-byte.
+- Total surface: **17 tests, ~620 ms wall-clock.**
+
+### Notes
+
+- `[Unreleased]` now contains only the v4-gated items.
+- No public API surface changed. No behaviour change for an already-built brain on Linux. Re-running `build-brain.mjs` on an existing brain scaffolds `.gitignore` if absent and is otherwise idempotent.
 
 ## [3.0.0] - First public release
 
@@ -107,5 +127,6 @@ See the **Unreleased** section above and `core/concepts.md` for the full pillar-
 
 ---
 
-[Unreleased]: https://github.com/SaroirCommunity/Spiderbrain-V3/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/SaroirCommunity/Spiderbrain-V3/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/SaroirCommunity/Spiderbrain-V3/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/SaroirCommunity/Spiderbrain-V3/releases/tag/v3.0.0

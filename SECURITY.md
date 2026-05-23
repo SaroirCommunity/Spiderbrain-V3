@@ -80,15 +80,16 @@ When building a new adapter (see [`CHALLENGES.md`](./CHALLENGES.md)), the per-pr
 
 | Threat | Status in v3 |
 |---|---|
-| Prompt injection via SQL `DEFAULT`, file paths, prey, role strings flowing into `additionalContext` | **Mitigated in `prompt-brief.mjs`** (control-char strip, length cap, untrusted-content fence). **Not yet mitigated in `session-brief.mjs` or `consolidate.mjs::movemap.md`** - fix planned in next patch release. |
-| Path traversal via tool-call file paths into the journal | **Mitigated.** Segment-aware containment in `journal.mjs` (`norm === root \|\| norm.startsWith(root + '/')`). |
-| Sibling-prefix attack (`/foo/project-brain-backup` matching `/foo/project-brain`) | **Mitigated** by the segment-aware check above. |
+| Prompt injection via SQL `DEFAULT`, file paths, prey, role strings flowing into `additionalContext` | **Mitigated** across all three hook + writer surfaces. `prompt-brief.mjs`, `session-brief.mjs` (since v3.0.1), and `consolidate.mjs::movemap.md` (since v3.0.1) all apply the control-char strip + length cap + untrusted-content fence discipline. The writer surface (`movemap.md`) additionally strips backticks so inline-code spans cannot be torn open. |
+| Path traversal via tool-call file paths into the journal | **Mitigated.** Segment-aware containment in `journal.mjs` (`norm === root \|\| norm.startsWith(root + '/')`), with case-folding on Windows + default-APFS macOS since v3.0.1. |
+| Sibling-prefix attack (`/foo/project-brain-backup` matching `/foo/project-brain`) | **Mitigated** by the segment-aware check above; preserved under the v3.0.1 case-fold. |
 | Symlink escape from scan or dragline | **Mitigated.** Explicit `isSymbolicLink()` skip in `scan.mjs::walk` and `dragline.mjs::curatedFiles`. |
-| Silent curated-data corruption on crash | **Mitigated.** `writeJsonAtomic` (tmp + fsync + rename) for curated writes; dragline snapshot before every consolidation; quarantine + restore on read. |
+| Silent curated-data corruption on crash | **Mitigated.** `writeJsonAtomic` (tmp + fsync + rename) for curated JSON; `appendTextAtomic` (since v3.0.1) for curated append-only text (`movemap.md`); dragline snapshot before every consolidation; quarantine + restore on read. |
 | Hook starvation or DoS via large prompt | **Mitigated in `prompt-brief.mjs`.** 80 ms in-script time budget, 600 ms stdin timeout, 8 000-char prompt cap. |
-| Windows case-sensitivity in path comparison | **Known gap.** `journal.mjs::inOrUnder` is byte-comparison; `C:` vs `c:` on Windows can defeat both the brain-self skip and the project-containment gate. Fix planned in next patch release. |
-| Brain folder accidentally committed to a project repo | **Documentation only today.** Recommended `.gitignore` entries: `cephalothorax/`, `synganglion.json`, `*.fouled-*`. A scaffolded `.gitignore` in the brain folder is planned. |
+| Windows case-sensitivity in path comparison | **Mitigated (since v3.0.1).** `journal.mjs::inOrUnder` folds case on `win32` + `darwin`; Linux comparison stays byte-exact. Mixed-case brain or project paths no longer defeat the brain-self skip or the project-containment gate. Unicode NFC/NFD normalisation on macOS remains unhandled - a separate, narrower gap. |
+| Brain folder accidentally committed to a project repo | **Mitigated (since v3.0.1).** `build-brain.mjs` scaffolds a `.gitignore` in the brain folder on first init (write-once via `writeIfAbsent`; user edits survive rebuilds). Excludes volatile + local-only paths; intentionally does NOT exclude generated views (`synganglion.json`, `spideyorder.md`, `<cluster>/webmap.md`) - committing them is a feature for code review. |
 | Saroir-style cross-database boundary enforcement | **Documentation only.** The cluster `rules.md` files carry the invariants; the cascade engine does not enforce them programmatically yet. |
+| Cross-process race on `movemap.md` (two consolidate runs against the same brain) | **Documented, not enforced.** `consolidate.mjs` is the declared single-writer of `movemap.md`. `appendTextAtomic` is rename-atomic but not a cross-process lock; two concurrent runs can still clobber each other's appended block. Lockfile work tracked for a future patch. |
 
 ## Recognition
 
